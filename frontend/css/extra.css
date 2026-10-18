@@ -1,0 +1,28 @@
+/* Styles for the pieces added on top of the original design (auth + booking dialogs). */
+.vj-overlay{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:1rem;background:rgb(0 0 0 / .8);animation:vj-fade .15s ease-out}
+.vj-dialog{position:relative;width:100%;max-width:425px;max-height:92vh;overflow-y:auto;background:var(--background,#fff);color:var(--foreground);border:1px solid var(--border);border-radius:.5rem;padding:1.5rem;box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1);display:grid;gap:1rem;animation:vj-zoom .2s ease-out}
+.vj-dialog .vj-close{position:absolute;right:1rem;top:1rem;opacity:.7;background:none;border:0;cursor:pointer;color:inherit;padding:2px;border-radius:2px}
+.vj-dialog .vj-close:hover{opacity:1}
+.vj-field{display:grid;gap:.5rem}
+.vj-input{display:flex;height:2.5rem;width:100%;border-radius:.375rem;border:1px solid var(--input);background:var(--background);padding:.5rem .75rem;font-size:.875rem;color:var(--foreground)}
+.vj-input:focus-visible{outline:none;box-shadow:0 0 0 2px var(--background),0 0 0 4px var(--ring)}
+.vj-input::placeholder{color:var(--muted-foreground)}
+.vj-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;width:100%;height:2.5rem;border:0;border-radius:.375rem;font-size:.875rem;font-weight:500;cursor:pointer;background:var(--primary);color:var(--primary-foreground);transition:opacity .15s}
+.vj-btn:hover{opacity:.9}
+.vj-btn:disabled{opacity:.5;cursor:not-allowed}
+.vj-btn-outline{background:var(--background);color:var(--foreground);border:1px solid var(--border)}
+.vj-btn-outline:hover{background:var(--accent);opacity:1}
+.vj-tabs{display:grid;grid-template-columns:1fr 1fr;gap:.25rem;padding:.25rem;border-radius:.5rem;background:var(--muted)}
+.vj-tab{height:2.25rem;border:0;border-radius:.375rem;background:transparent;font-size:.875rem;font-weight:500;color:var(--muted-foreground);cursor:pointer}
+.vj-tab[aria-selected=true]{background:var(--background);color:var(--foreground);box-shadow:0 1px 2px rgb(0 0 0/.08)}
+.vj-error{border-radius:.375rem;background:#fef2f2;color:#b91c1c;font-size:.8125rem;padding:.5rem .75rem;border:1px solid #fecaca}
+.vj-spin{animation:vj-rot 1s linear infinite}
+.vj-header-btn{display:inline-flex;align-items:center;justify-content:center;height:2.25rem;padding:0 1rem;border-radius:.375rem;font-size:.875rem;font-weight:500;cursor:pointer;white-space:nowrap;border:1px solid var(--border);background:var(--background);color:var(--foreground)}
+.vj-header-btn:hover{background:var(--accent)}
+.vj-header-btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-foreground)}
+.vj-header-btn.primary:hover{opacity:.9}
+#toast{position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%);z-index:80;background:#0e171e;color:#fff;padding:.625rem 1rem;border-radius:.5rem;font-size:.875rem;box-shadow:0 10px 15px -3px rgb(0 0 0/.2);animation:vj-fade .15s ease-out}
+select.vj-select{appearance:auto}
+@keyframes vj-fade{from{opacity:0}to{opacity:1}}
+@keyframes vj-zoom{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@keyframes vj-rot{to{transform:rotate(360deg)}}
