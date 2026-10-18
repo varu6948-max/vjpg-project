@@ -123,6 +123,19 @@ app.post('/api/coupon', couponLimiter, requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// Admin data is available only when a private ADMIN_KEY is configured on the server.
+app.get('/api/admin/data', async (req, res, next) => {
+  try {
+    const given = Buffer.from(String(req.headers['x-admin-key'] || ''));
+    const want = Buffer.from(ADMIN_KEY);
+    if (!ADMIN_KEY || given.length !== want.length || !crypto.timingSafeEqual(given, want)) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    res.set('Cache-Control', 'no-store');
+    res.json(await store.adminData());
+  } catch (e) { next(e); }
+});
+
 // Download the Excel workbook (users + coupons). Disabled unless ADMIN_KEY is set.
 app.get('/api/admin/export', (req, res) => {
   const given = Buffer.from(String(req.headers['x-admin-key'] || ''));
