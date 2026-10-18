@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VJ-PGs Admin Dashboard</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#172033;background:#f4f7fb}
+*{box-sizing:border-box}body{margin:0}header{background:#10284a;color:#fff;padding:22px 5%;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+header h1{margin:0;font-size:22px}header p{margin:5px 0 0;color:#cbd8e8;font-size:13px}
+main{max-width:1200px;margin:28px auto;padding:0 18px}.panel{background:#fff;border:1px solid #e1e7f0;border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 5px 20px #12284a08}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row input{flex:1;min-width:220px}
+input,button{font:inherit;border-radius:9px;padding:11px 13px;border:1px solid #ccd5e2}button{cursor:pointer;background:#135fc4;color:#fff;border-color:#135fc4;font-weight:600}button.secondary{background:#fff;color:#26364b;border-color:#ccd5e2}button:disabled{opacity:.5;cursor:not-allowed}
+.small{font-size:13px;color:#66758a;line-height:1.5}.status{margin-top:10px;font-size:14px}.error{color:#b42318}.success{color:#087443}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px}.stat{background:#fff;border:1px solid #e1e7f0;border-radius:14px;padding:18px}.stat span{display:block;color:#66758a;font-size:13px}.stat strong{display:block;font-size:28px;margin-top:7px}
+h2{font-size:18px;margin:0 0 14px}.tabs{display:flex;gap:8px;margin-bottom:16px}.tabs button.active{background:#10284a;border-color:#10284a}
+.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}th,td{text-align:left;padding:11px 12px;border-bottom:1px solid #edf0f5}th{background:#f7f9fc;color:#43536a;position:sticky;top:0}tbody tr:hover{background:#fafcff}.hidden{display:none}
+@media(max-width:640px){.stats{grid-template-columns:1fr}.panel{padding:15px}header{padding:18px}}
+</style>
+</head>
+<body>
+<header><div><h1>VJ-PGs Admin Dashboard</h1><p>Private view of registered users and generated coupons</p></div><button id="logout" class="secondary" hidden>Lock dashboard</button></header>
+<main>
+<section class="panel" id="login-panel">
+<h2>Admin access</h2>
+<p class="small">Enter the ADMIN_KEY you configured in your Render backend environment variables. This key is not your Resend API key or your website login password.</p>
+<form id="login-form" class="row"><input id="admin-key" type="password" autocomplete="current-password" placeholder="Enter admin key" required><button type="submit">Open dashboard</button></form>
+<div id="login-status" class="status" role="status"></div>
+</section>
+<div id="dashboard" class="hidden">
+<div class="stats"><div class="stat"><span>Registered users</span><strong id="user-count">—</strong></div><div class="stat"><span>Coupons generated</span><strong id="coupon-count">—</strong></div><div class="stat"><span>Unique colleges selected</span><strong id="college-count">—</strong></div></div>
+<section class="panel">
+<div class="row" style="justify-content:space-between;margin-bottom:14px"><h2 style="margin:0">Records</h2><div class="row"><button id="refresh" class="secondary">Refresh</button><button id="export">Download Excel</button></div></div>
+<div class="tabs"><button class="active" data-tab="coupons">Coupons</button><button class="secondary" data-tab="users">Users</button></div>
+<input id="search" type="search" placeholder="Search by name, email, college, or coupon number" style="width:100%;margin-bottom:14px">
+<div class="table-wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+<p class="small" id="table-status"></p>
+</section>
+</div>
+<p class="small">Security note: keep this page private and never share the admin key. Only data already saved by the backend can appear here.</p>
+</main>
+<script src="js/config.js"></script>
+<script>
+(() => {
+ const $ = (id) => document.getElementById(id);
+ const api = (window.VJ_CONFIG && window.VJ_CONFIG.API_BASE || '').replace(/\/$/, '');
+ let key = '';
+ let data = {users:[], coupons:[]};
+ let tab = 'coupons';
+ const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const status = (message, kind='') => { $('login-status').className='status '+kind; $('login-status').textContent=message; };
+ async function loadData() {
+   $('table-status').textContent='Loading records…';
+   const response = await fetch(api + '/api/admin/data', {headers:{'x-admin-key':key},cache:'no-store'});
+   if (!response.ok) throw new Error(response.status===404 || response.status===401 ? 'Access denied. Check the ADMIN_KEY in Render.' : 'Could not load records. Please try again.');
+   data = await response.json();
+   $('user-count').textContent=data.users.length;
+   $('coupon-count').textContent=data.coupons.length;
+   $('college-count').textContent=new Set(data.coupons.map(x=>x.college).filter(Boolean)).size;
+   $('login-panel').classList.add('hidden');
+   $('dashboard').classList.remove('hidden');
+   $('logout').hidden=false;
+   render();
+ }
+ function render() {
+   const isUsers=tab==='users';
+   const cols=isUsers
+    ? [['fullName','Full name'],['email','Email'],['phone','Phone'],['createdAt','Registered'],['lastLogin','Last login']]
+    : [['tokenId','Coupon no.'],['issuedAt','Issued at'],['accountEmail','Logged-in email'],['studentName','Student name'],['phone','Phone'],['college','College selected'],['pgName','PG'],['sharingType','Sharing'],['price','Price (₹)'],['emailStatus','Email status']];
+   $('thead').innerHTML='<tr>'+cols.map(c=>'<th>'+esc(c[1])+'</th>').join('')+'</tr>';
+   const source=isUsers?data.users:data.coupons;
+   const q=$('search').value.trim().toLowerCase();
+   const filtered=source.filter(item=>cols.some(c=>String(item[c[0]]??'').toLowerCase().includes(q)));
+   $('tbody').innerHTML=filtered.map(item=>'<tr>'+cols.map(c=>'<td>'+esc(item[c[0]]||'—')+'</td>').join('')+'</tr>').join('');
+   $('table-status').textContent=filtered.length+' record(s) shown'+(q?' (filtered)':'')+'.';
+ }
+ $('login-form').addEventListener('submit', async e => {
+   e.preventDefault(); key=$('admin-key').value;
+   try { await loadData(); sessionStorage.setItem('vjpg_admin_key',key); status('Dashboard loaded.','success'); }
+   catch(err){ status(err.message,'error'); key=''; }
+ });
+ $('logout').addEventListener('click',()=>{key='';sessionStorage.removeItem('vjpg_admin_key');data={users:[],coupons:[]};$('dashboard').classList.add('hidden');$('login-panel').classList.remove('hidden');$('logout').hidden=true;$('admin-key').value='';status('Dashboard locked.');});
+ $('refresh').addEventListener('click',async()=>{try{await loadData()}catch(err){$('table-status').textContent=err.message}});
+ $('search').addEventListener('input',render);
+ document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>{tab=btn.dataset.tab;document.querySelectorAll('[data-tab]').forEach(b=>{b.classList.toggle('active',b===btn);b.classList.toggle('secondary',b!==btn)});render()}));
+ $('export').addEventListener('click',async()=>{
+   try{
+     const response=await fetch(api+'/api/admin/export',{headers:{'x-admin-key':key},cache:'no-store'});
+     if(!response.ok) throw new Error('Export failed. Check admin key and backend status.');
+     const blob=await response.blob(), url=URL.createObjectURL(blob), a=document.createElement('a');
+     a.href=url;a.download='vjpgs-data.xlsx';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+   }catch(err){$('table-status').textContent=err.message}
+ });
+ // Restore access only for this browser tab/session, never store the key permanently.
+ const saved=sessionStorage.getItem('vjpg_admin_key');
+ if(saved){key=saved;$('admin-key').value=saved;loadData().catch(()=>{key='';sessionStorage.removeItem('vjpg_admin_key');$('login-panel').classList.remove('hidden');$('dashboard').classList.add('hidden');});}
+})();
+</script>
+</body>
+</html>
