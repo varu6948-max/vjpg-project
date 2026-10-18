@@ -1,0 +1,27 @@
+# Render Blueprint: backend API with the Excel workbook on a persistent disk.
+services:
+  - type: web
+    name: vjpg-api
+    runtime: node
+    rootDir: backend
+    plan: starter            # persistent disks need a paid plan; see README for the free-tier trade-off
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    disk:
+      name: vjpg-data
+      mountPath: /var/data   # vjpgs-data.xlsx lives here and survives restarts/deploys
+      sizeGB: 1
+    envVars:
+      - key: DATA_DIR
+        value: /var/data
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_KEY      # lets you download the Excel file: GET /api/admin/export with header x-admin-key
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: https://vjpg.vercel.app
+      - key: COUPON_RECIPIENT
+        value: varungowdaj77@gmail.com
+      - key: RESEND_API_KEY   # paste your key in the Render dashboard
+        sync: false

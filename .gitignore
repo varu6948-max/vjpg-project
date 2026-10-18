@@ -1,0 +1,4 @@
+node_modules/
+backend/data/*.xlsx
+backend/data/*.tmp
+.env
